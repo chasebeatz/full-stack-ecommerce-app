@@ -52,7 +52,7 @@ export default function AddProduct() {
       setImage(null);
       setTouched(false);
     } catch (err) {
-      setStatus({ type: "error", message: `${err.message}. Is the backend running on port 5000?` });
+      setStatus({ type: "error", message: `${err.message}. Is the backend running and VITE_API_URL set correctly?` });
     }
   };
 

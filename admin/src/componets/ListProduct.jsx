@@ -112,7 +112,7 @@ export default function ListProduct() {
           <div className="flex flex-col items-center px-6 py-16 text-center">
             <HiExclamationCircle className="h-10 w-10 text-red-500" />
             <p className="mt-3 font-medium">Couldn&apos;t load products</p>
-            <p className="mt-1 text-sm text-muted">Make sure the backend is running on port 5000.</p>
+            <p className="mt-1 text-sm text-muted">Make sure the backend is running and VITE_API_URL is set correctly.</p>
             <button onClick={load} className="btn-outline mt-5"><HiOutlineRefresh /> Try again</button>
           </div>
         )}
