@@ -34,3 +34,5 @@ grant select on public.products to anon, authenticated;
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
 on conflict (id) do nothing;
+
+-- Orders: see orders.sql

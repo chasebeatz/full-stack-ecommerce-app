@@ -7,13 +7,13 @@ import prt3 from "./../assets/product_rt_3.png";
 import prt4 from "./../assets/product_rt_4.png";
 import { ShopContext } from "../context/ShopContext";
 import { discountPercent, formatPrice } from "../utils/format";
-
-const SIZES = ["XS", "S", "M", "L", "XL"];
+import { SIZES } from "../utils/pricing";
 const CATEGORY_LABEL = { men: "Men", women: "Women", kid: "Kids" };
 
-export default function ProductDisplay({ product }) {
+export default function ProductDisplay({ product, onSizeGuide }) {
   const { addToCart } = useContext(ShopContext);
-  const gallery = [product.image, prt1, prt2, prt3, prt4];
+  // the extra shots are generic demo photos, so only show them for the bundled demo products
+  const gallery = product.id <= 36 ? [product.image, prt1, prt2, prt3, prt4] : [product.image];
   const [active, setActive] = useState(0);
   const [size, setSize] = useState("M");
   const [qty, setQty] = useState(1);
@@ -22,13 +22,14 @@ export default function ProductDisplay({ product }) {
 
   // reset state when navigating between products
   useEffect(() => {
+    setSize("M");
     setActive(0);
     setQty(1);
     setAdded(false);
   }, [product.id]);
 
   const handleAdd = () => {
-    addToCart(product.id, qty);
+    addToCart(product.id, qty, size);
     setAdded(true);
   };
 
@@ -89,7 +90,12 @@ export default function ProductDisplay({ product }) {
             <span className="font-semibold">
               Size: <span className="font-normal text-muted">{size}</span>
             </span>
-            <button className="text-muted underline underline-offset-4 hover:text-ink">Size guide</button>
+            <button
+              onClick={onSizeGuide}
+              className="text-muted underline underline-offset-4 hover:text-ink"
+            >
+              Size guide
+            </button>
           </div>
           <div className="flex flex-wrap gap-2">
             {SIZES.map((s) => (

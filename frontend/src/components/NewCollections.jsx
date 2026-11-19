@@ -1,12 +1,12 @@
 import { useContext } from "react";
-import LATEST from "../assets/latest";
 import { ShopContext } from "../context/ShopContext";
 import ProductGrid from "./ProductGrid";
 import SectionHeading from "./SectionHeading";
 
 export default function NewCollections() {
   const { all_products } = useContext(ShopContext);
-  const products = LATEST.map((p) => all_products.find((a) => a.id === p.id)).filter(Boolean);
+  // newest first, so products added in the admin show up here
+  const products = [...all_products].sort((a, b) => b.id - a.id).slice(0, 8);
 
   return (
     <section className="py-20 md:py-28">

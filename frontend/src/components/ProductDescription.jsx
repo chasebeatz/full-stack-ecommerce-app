@@ -1,4 +1,3 @@
-import { useState } from "react";
 
 const TABS = {
   Description: [
@@ -15,11 +14,10 @@ const TABS = {
   ],
 };
 
-export default function ProductDescription() {
-  const [tab, setTab] = useState("Description");
+export default function ProductDescription({ tab = "Description", setTab }) {
 
   return (
-    <section className="mt-20 border-t border-line pt-10">
+    <section id="product-info" className="mt-20 scroll-mt-28 border-t border-line pt-10">
       <div role="tablist" className="flex gap-6 overflow-x-auto border-b border-line">
         {Object.keys(TABS).map((name) => (
           <button

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router";
 import SideBar from "../componets/SideBar";
 import AddProduct from "../componets/AddProduct";
 import ListProduct from "../componets/ListProduct";
+import Orders from "../componets/Orders";
 
 export default function Admin() {
   return (
@@ -12,6 +13,8 @@ export default function Admin() {
           <Route path="/" element={<Navigate to="/listproduct" replace />} />
           <Route path="/addproduct" element={<AddProduct />} />
           <Route path="/listproduct" element={<ListProduct />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="*" element={<Navigate to="/listproduct" replace />} />
         </Routes>
       </main>
     </div>

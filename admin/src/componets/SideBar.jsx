@@ -1,9 +1,10 @@
 import { NavLink } from "react-router";
-import { HiOutlineViewGrid, HiOutlinePlusCircle } from "react-icons/hi";
+import { HiOutlineViewGrid, HiOutlinePlusCircle, HiOutlineClipboardList } from "react-icons/hi";
 
 const LINKS = [
   { to: "/listproduct", label: "All products", Icon: HiOutlineViewGrid },
   { to: "/addproduct", label: "Add product", Icon: HiOutlinePlusCircle },
+  { to: "/orders", label: "Orders", Icon: HiOutlineClipboardList },
 ];
 
 export default function SideBar() {

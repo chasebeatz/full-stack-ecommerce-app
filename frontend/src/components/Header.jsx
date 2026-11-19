@@ -1,7 +1,9 @@
 import { useContext, useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { HiOutlineShoppingBag, HiOutlineUser, HiOutlineMenuAlt3, HiX } from "react-icons/hi";
 import { ShopContext } from "../context/ShopContext";
+import { useAuth } from "../context/AuthContext";
+import AccountMenu from "./AccountMenu";
 
 const NAV = [
   { to: "/", label: "Home", end: true },
@@ -17,6 +19,8 @@ const linkClass = ({ isActive }) =>
 
 export default function Header() {
   const { getTotalCartItems } = useContext(ShopContext);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
@@ -57,12 +61,7 @@ export default function Header() {
           </ul>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <Link
-              to="/login"
-              className="hidden items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink transition hover:bg-sand sm:flex"
-            >
-              <HiOutlineUser className="h-5 w-5" /> Sign in
-            </Link>
+            <AccountMenu />
             <Link
               to="/cart-page"
               className="relative grid h-11 w-11 place-items-center rounded-full transition hover:bg-sand"
@@ -106,11 +105,27 @@ export default function Header() {
                 </NavLink>
               </li>
             ))}
-            <li>
-              <Link to="/login" className="mt-2 flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium text-muted">
-                <HiOutlineUser className="h-5 w-5" /> Sign in / Create account
-              </Link>
-            </li>
+            {user ? (
+              <li className="mt-2 border-t border-line pt-2">
+                <p className="px-3 pt-2 text-xs text-muted">Signed in as {user.email}</p>
+                <Link to="/orders" className="block rounded-lg px-3 py-3 text-sm font-medium">My orders</Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="block w-full rounded-lg px-3 py-3 text-left text-sm font-medium"
+                >
+                  Sign out
+                </button>
+              </li>
+            ) : (
+              <li>
+                <Link to="/login" className="mt-2 flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium text-muted">
+                  <HiOutlineUser className="h-5 w-5" /> Sign in / Create account
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
       </header>

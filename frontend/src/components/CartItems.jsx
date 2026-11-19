@@ -1,33 +1,25 @@
 import { useContext, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { HiMinus, HiPlus, HiOutlineTrash, HiOutlineShoppingBag, HiArrowLeft, HiOutlineLockClosed } from "react-icons/hi";
 import { ShopContext } from "../context/ShopContext";
 import { formatPrice } from "../utils/format";
-
-const FREE_SHIPPING_AT = 75;
-const SHIPPING_FEE = 7.95;
-const COUPONS = { WELCOME10: 0.1 };
+import { FREE_SHIPPING_AT, priceCart } from "../utils/pricing";
 
 export default function CartItems() {
-  const { cartList, setQuantity, deleteFromCart, getTotalCartAmount, getTotalCartItems } = useContext(ShopContext);
+  const { cartList, setQuantity, deleteFromCart, getTotalCartAmount, getTotalCartItems, coupon, applyCoupon, removeCoupon } =
+    useContext(ShopContext);
+  const navigate = useNavigate();
   const [code, setCode] = useState("");
-  const [coupon, setCoupon] = useState(null);
   const [couponError, setCouponError] = useState("");
 
-  const subtotal = getTotalCartAmount();
-  const discount = coupon ? subtotal * COUPONS[coupon] : 0;
-  const shipping = subtotal - discount >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : SHIPPING_FEE;
-  const total = subtotal - discount + shipping;
-  const toFree = Math.max(0, FREE_SHIPPING_AT - (subtotal - discount));
+  const { subtotal, discount, shipping, total, toFreeShipping: toFree } = priceCart(getTotalCartAmount(), coupon);
 
-  const applyCoupon = (e) => {
+  const submitCoupon = (e) => {
     e.preventDefault();
-    const normalized = code.trim().toUpperCase();
-    if (COUPONS[normalized]) {
-      setCoupon(normalized);
+    if (applyCoupon(code)) {
+      setCode("");
       setCouponError("");
     } else {
-      setCoupon(null);
       setCouponError("That code isn't valid. Try WELCOME10.");
     }
   };
@@ -69,8 +61,8 @@ export default function CartItems() {
           )}
 
           <ul className="divide-y divide-line border-y border-line">
-            {cartList.map(({ product, quantity }) => (
-              <li key={product.id} className="flex gap-4 py-6 sm:gap-6">
+            {cartList.map(({ key, product, size, quantity }) => (
+              <li key={key} className="flex gap-4 py-6 sm:gap-6">
                 <Link to={`/product/${product.id}`} className="shrink-0">
                   <img src={product.image} alt={product.name} className="h-32 w-28 rounded-xl bg-sand object-cover sm:h-36 sm:w-32" />
                 </Link>
@@ -81,18 +73,18 @@ export default function CartItems() {
                     </Link>
                     <p className="font-semibold">{formatPrice(product.new_price * quantity)}</p>
                   </div>
-                  <p className="mt-1 text-sm text-muted">{formatPrice(product.new_price)} each</p>
+                  <p className="mt-1 text-sm text-muted">Size {size} · {formatPrice(product.new_price)} each</p>
                   <div className="mt-auto flex items-center justify-between pt-4">
                     <div className="flex h-10 items-center rounded-full border border-line bg-white">
-                      <button onClick={() => setQuantity(product.id, quantity - 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Decrease quantity">
+                      <button onClick={() => setQuantity(key, quantity - 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Decrease quantity">
                         <HiMinus className="h-4 w-4" />
                       </button>
                       <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
-                      <button onClick={() => setQuantity(product.id, quantity + 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Increase quantity">
+                      <button onClick={() => setQuantity(key, quantity + 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Increase quantity">
                         <HiPlus className="h-4 w-4" />
                       </button>
                     </div>
-                    <button onClick={() => deleteFromCart(product.id)} className="flex items-center gap-1.5 text-sm text-muted transition hover:text-red-600">
+                    <button onClick={() => deleteFromCart(key)} className="flex items-center gap-1.5 text-sm text-muted transition hover:text-red-600">
                       <HiOutlineTrash className="h-4 w-4" /> Remove
                     </button>
                   </div>
@@ -116,7 +108,10 @@ export default function CartItems() {
             </div>
             {coupon && (
               <div className="flex justify-between text-green-700">
-                <dt>Discount ({coupon})</dt>
+                <dt>
+                  Discount ({coupon}){" "}
+                  <button onClick={removeCoupon} className="ml-1 text-xs text-muted underline hover:text-ink">remove</button>
+                </dt>
                 <dd className="font-medium">−{formatPrice(discount)}</dd>
               </div>
             )}
@@ -130,7 +125,7 @@ export default function CartItems() {
             </div>
           </dl>
 
-          <form onSubmit={applyCoupon} className="mt-6">
+          <form onSubmit={submitCoupon} className="mt-6">
             <label htmlFor="coupon" className="text-sm font-medium">Promo code</label>
             <div className="mt-2 flex gap-2">
               <input id="coupon" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className="input h-11" />
@@ -139,7 +134,7 @@ export default function CartItems() {
             {couponError && <p className="mt-2 text-xs text-red-600">{couponError}</p>}
           </form>
 
-          <button className="btn-accent mt-6 h-14 w-full text-base">
+          <button onClick={() => navigate("/checkout")} className="btn-accent mt-6 h-14 w-full text-base">
             <HiOutlineLockClosed className="h-5 w-5" /> Checkout
           </button>
           <p className="mt-3 text-center text-xs text-muted">Taxes calculated at checkout</p>

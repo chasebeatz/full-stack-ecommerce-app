@@ -4,6 +4,9 @@ import path from "path";
 import cors from "cors";
 import { randomUUID } from "crypto";
 import { supabase, BUCKET } from "./lib/supabase.js";
+import { requireAdmin } from "./lib/auth.js";
+import authRoutes from "./routes/auth.js";
+import orderRoutes from "./routes/orders.js";
 
 const app = express();
 
@@ -30,7 +33,7 @@ app.get("/", (req, res) => {
   res.send("Shoppee API is running");
 });
 
-app.post("/upload", upload.single("product"), async (req, res, next) => {
+app.post("/upload", requireAdmin, upload.single("product"), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ success: 0, message: "No image provided" });
 
@@ -49,7 +52,7 @@ app.post("/upload", upload.single("product"), async (req, res, next) => {
   }
 });
 
-app.post("/addproducts", async (req, res, next) => {
+app.post("/addproducts", requireAdmin, async (req, res, next) => {
   try {
     const { name, image, category } = req.body;
     const new_price = Number(req.body.new_price);
@@ -72,7 +75,7 @@ app.post("/addproducts", async (req, res, next) => {
   }
 });
 
-app.post("/removeproducts", async (req, res, next) => {
+app.post("/removeproducts", requireAdmin, async (req, res, next) => {
   try {
     const id = Number(req.body.id);
     if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: "Invalid id" });
@@ -102,6 +105,13 @@ app.get("/allproducts", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+app.use("/auth", authRoutes);
+app.use(orderRoutes);
+
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: "Not found" });
 });
 
 // eslint-disable-next-line no-unused-vars
