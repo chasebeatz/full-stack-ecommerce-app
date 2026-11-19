@@ -1,30 +1,54 @@
-import React from 'react'
-
-import { MdOutlineLocalOffer, MdStar } from "react-icons/md"
-import { Link, NavLink } from 'react-router'
+import { Link } from "react-router";
+import { HiArrowRight, HiStar } from "react-icons/hi";
+import heroImg from "../assets/bgecom.png";
 
 export default function Hero() {
   return (
-    <div className='bg-hero bg-cover bg-center h-screen flex items-center justify-center '>
-        <section className='w-[90%] h-[90%]  flex items-center '>
-            <div className='flex w-[60%] flex-col justify-start space-y-4 '>
-                <h1 className='font-bold text-6xl h1 max-w-[33rem]'>Digital Shopping Hub Junction</h1>
-                <p className='text-xs text-gray-50 '>Lorem ipsum dolor sit amet consectetur adipisicing elit. Magni amet tempora vitae incidunt laborum autem suscipit, id vero ullam vel voluptatibus voluptatem ratione aut laudantium optio reprehenderit consequatur eos. Aliquam.</p>
-                <div className='flex flex-col  sm:flex-row gap-4'>
-                    <div className='flex gap-1 '>
-                        <MdStar/>
-                        <MdStar/>
-                        <MdStar/>
-                        <MdStar/>
-                    </div>
-                    <p className='text-gray-50'><span className='font-bold text-black'>198k</span> Excellent Reviews</p>
-                </div>
-                <div className='flex flex-col  sm:flex-row gap-4'>
-                    <Link className='btn_dark_rounded text-center'>Shop Now</Link>
-                    <Link className='btn_dark_rounded rounded-3xl flexCenter gap-x-2'><MdOutlineLocalOffer/> Offers</Link>
-                </div>
+    <section className="container-x pt-4 md:pt-6">
+      <div className="relative overflow-hidden rounded-[28px] bg-sand">
+        <img
+          src={heroImg}
+          alt="Woman in a pink coat carrying shopping bags"
+          className="absolute inset-0 h-full w-full object-cover object-[70%_center]"
+        />
+        {/* readability wash on small screens */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#e9e4e8]/95 via-[#e9e4e8]/70 to-transparent md:via-[#e9e4e8]/30" />
+
+        <div className="relative flex min-h-[560px] items-center px-6 py-16 sm:px-12 md:min-h-[640px] lg:px-16">
+          <div className="max-w-xl animate-fade-up">
+            <p className="eyebrow">New season · Autumn / Winter</p>
+            <h1 className="mt-5 text-5xl font-medium leading-[1.02] sm:text-6xl lg:text-7xl">
+              Dress for the
+              <br />
+              <em className="font-normal text-accent-dark">life</em> you live.
+            </h1>
+            <p className="mt-6 max-w-md text-base leading-relaxed text-ink/70 md:text-lg">
+              Comfortable, considered essentials for men, women and kids — at prices that make sense.
+            </p>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link to="/womens" className="btn-dark group px-8 py-4">
+                Shop women
+                <HiArrowRight className="transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link to="/mens" className="btn-ghost px-8 py-4">
+                Shop men
+              </Link>
             </div>
-        </section>
-    </div>
-  )
+
+            <div className="mt-10 flex items-center gap-3 text-sm">
+              <div className="flex text-accent">
+                {[...Array(5)].map((_, i) => (
+                  <HiStar key={i} className="h-4 w-4" />
+                ))}
+              </div>
+              <p className="text-ink/70">
+                <span className="font-semibold text-ink">4.9/5</span> from 198k+ happy customers
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }

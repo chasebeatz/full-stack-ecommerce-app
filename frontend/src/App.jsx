@@ -1,8 +1,8 @@
-import React from "react";
 import { Route, Routes } from "react-router";
 import Home from "./pages/Home";
 import Header from "./components/Header";
 import { MyFooter } from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
 import Category from "./pages/Category";
 import bannerwomens from "./assets/bannerwomens.png";
 import bannermens from "./assets/bannermens.png";
@@ -13,29 +13,20 @@ import Cart from "./pages/Cart";
 
 export default function App() {
   return (
-    <div>
+    <div className="flex min-h-screen flex-col">
+      <ScrollToTop />
       <Header />
-
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/kids"
-          element={<Category category={"kid"} banner={bannerkids} />}
-        />
-        <Route
-          path="/mens"
-          element={<Category category={"men"} banner={bannermens} />}
-        />
-        <Route
-          path="/womens"
-          element={<Category category={"women"} banner={bannerwomens} />}
-        />
-        <Route path="/login" element={<Login />} />
-        <Route path="/product" element={<Product />}>
-          <Route path=":productId" element={<Product />} />
-        </Route>
-        <Route path="/cart-page" element={<Cart/>} />
-      </Routes>
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/kids" element={<Category key="kid" category="kid" banner={bannerkids} />} />
+          <Route path="/mens" element={<Category key="men" category="men" banner={bannermens} />} />
+          <Route path="/womens" element={<Category key="women" category="women" banner={bannerwomens} />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/product/:productId" element={<Product />} />
+          <Route path="/cart-page" element={<Cart />} />
+        </Routes>
+      </main>
       <MyFooter />
     </div>
   );

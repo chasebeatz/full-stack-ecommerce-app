@@ -1,93 +1,150 @@
-import React, { useContext } from "react";
-import { TbTrash } from "react-icons/tb";
+import { useContext, useState } from "react";
+import { Link } from "react-router";
+import { HiMinus, HiPlus, HiOutlineTrash, HiOutlineShoppingBag, HiArrowLeft, HiOutlineLockClosed } from "react-icons/hi";
 import { ShopContext } from "../context/ShopContext";
+import { formatPrice } from "../utils/format";
+
+const FREE_SHIPPING_AT = 75;
+const SHIPPING_FEE = 7.95;
+const COUPONS = { WELCOME10: 0.1 };
 
 export default function CartItems() {
-  const { all_products, cartItems, removeFromCart, getTotalCartAmount, } = useContext(ShopContext);
+  const { cartList, setQuantity, deleteFromCart, getTotalCartAmount, getTotalCartItems } = useContext(ShopContext);
+  const [code, setCode] = useState("");
+  const [coupon, setCoupon] = useState(null);
+  const [couponError, setCouponError] = useState("");
+
+  const subtotal = getTotalCartAmount();
+  const discount = coupon ? subtotal * COUPONS[coupon] : 0;
+  const shipping = subtotal - discount >= FREE_SHIPPING_AT || subtotal === 0 ? 0 : SHIPPING_FEE;
+  const total = subtotal - discount + shipping;
+  const toFree = Math.max(0, FREE_SHIPPING_AT - (subtotal - discount));
+
+  const applyCoupon = (e) => {
+    e.preventDefault();
+    const normalized = code.trim().toUpperCase();
+    if (COUPONS[normalized]) {
+      setCoupon(normalized);
+      setCouponError("");
+    } else {
+      setCoupon(null);
+      setCouponError("That code isn't valid. Try WELCOME10.");
+    }
+  };
+
+  if (cartList.length === 0) {
+    return (
+      <div className="container-x flex flex-col items-center py-28 text-center">
+        <span className="grid h-20 w-20 place-items-center rounded-full bg-white shadow-soft">
+          <HiOutlineShoppingBag className="h-9 w-9 text-muted" />
+        </span>
+        <h1 className="mt-6 text-3xl font-medium md:text-4xl">Your bag is empty</h1>
+        <p className="mt-3 max-w-sm text-muted">Looks like you haven&apos;t added anything yet. Let&apos;s fix that.</p>
+        <Link to="/" className="btn-dark mt-8 px-8 py-4">Start shopping</Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="max_padd_container pt-28">
-      <table className="w-full mx-auto">
-        <thead>
-          <tr className="bg-slate-900/10 regular-18 sm:regular-22 text-start py-12">
-            <th className="p-1 py-2">Products</th>
-            <th className="p-1 py-2">Title</th>
-            <th className="p-1 py-2">Price</th>
-            <th className="p-1 py-2">Quantity</th>
-            <th className="p-1 py-2">Total</th>
-            <th className="p-1 py-2">Remove</th>
-          </tr>
-        </thead>
-        <tbody>
-          {all_products.map((product) => {
-            if (cartItems[product.id] > 0) {
-              return (
-                <tr
-                  key={product.id}
-                  className="border-b border-slate-900/20 p-6 medium-14 text-center"
-                >
-                  <td className="p-1 py-2 flexCenter">
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      width={43}
-                      height={43}
-                      className="object-cover rounded-lg ring-1 ring-slate-900/5 my-1"
-                    />
-                  </td>
-                  <td className="p-1 py-2 ">{product.name}</td>
-                  <td className="p-1 py-2">{product.new_price}</td>
-                  <td className="p-1 py-2 bg-white">{cartItems[product.id]}</td>
-                  <td className="p-1 py-2">
-                    {product.new_price * cartItems[product.id]}
-                  </td>
-                  <td className="p-1 py-2">
-                    <div className="bold-22 pl-14 cursor-pointer">
-                      <TbTrash onClick={() => removeFromCart(product.id)} />
-                    </div>
-                  </td>
-                </tr>
-              );
-            }
-            return null;
-          })}
-        </tbody>
-      </table>
-      <section className="bg-white w-full max-w-[666px] flex flex-col gap-20 p-8 md:flex-row rounded-md ">
-        <div className="flex flex-col gap-10">
-          <h4 className="bold-20">Summary</h4>
-          <div>
-            <section className="flex justify-between py-4">
-              <h4 className="medium-16">Subtotal:</h4>
-              <h4 className="text-gray-30 font-semibold">${getTotalCartAmount()}</h4>
-            </section>
-            <hr />
-            <section className="flex justify-between py-4">
-              <h4 className="medium-16">Shipping Fee:</h4>
-              <h4 className="text-gray-30 font-semibold">Free</h4>
-            </section>
-            <hr />
-            <section className="flex justify-between py-4">
-              <h4 className="bold-18">Total:</h4>
-              <h4 className="bold-18">${getTotalCartAmount()}</h4>
-            </section>
-          </div>
-          <button className="btn_dark_rounded">Checkout</button>
-          <div className="flex flex-col gap-10">
-            <h4 className="capitalize bold-20">Your coupon code enter here</h4>
-            <div className="flex justify-between pl-4 h-12 ring-1 ring-slate-900/10 rounded-full">
-              <input
-                type="text"
-                placeholder="Coupon Code"
-                className="bg-transparent border-none outline-none "
-              />
-              <button className="btn_dark_rounded" >
-                Submit
-              </button>
+    <div className="container-x py-12 md:py-16">
+      <h1 className="text-4xl font-medium md:text-5xl">Your bag</h1>
+      <p className="mt-2 text-muted">{getTotalCartItems()} item{getTotalCartItems() === 1 ? "" : "s"}</p>
+
+      <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_400px]">
+        {/* line items */}
+        <div>
+          {toFree > 0 ? (
+            <div className="mb-6 rounded-2xl bg-white p-5">
+              <p className="text-sm">
+                You&apos;re <span className="font-semibold">{formatPrice(toFree)}</span> away from free shipping
+              </p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-sand">
+                <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.min(100, ((subtotal - discount) / FREE_SHIPPING_AT) * 100)}%` }} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mb-6 rounded-2xl bg-accent-soft p-5 text-sm font-medium text-accent-dark">
+              🎉 You&apos;ve unlocked free shipping
+            </div>
+          )}
+
+          <ul className="divide-y divide-line border-y border-line">
+            {cartList.map(({ product, quantity }) => (
+              <li key={product.id} className="flex gap-4 py-6 sm:gap-6">
+                <Link to={`/product/${product.id}`} className="shrink-0">
+                  <img src={product.image} alt={product.name} className="h-32 w-28 rounded-xl bg-sand object-cover sm:h-36 sm:w-32" />
+                </Link>
+                <div className="flex flex-1 flex-col">
+                  <div className="flex justify-between gap-4">
+                    <Link to={`/product/${product.id}`} className="line-clamp-2 font-medium hover:underline">
+                      {product.name}
+                    </Link>
+                    <p className="font-semibold">{formatPrice(product.new_price * quantity)}</p>
+                  </div>
+                  <p className="mt-1 text-sm text-muted">{formatPrice(product.new_price)} each</p>
+                  <div className="mt-auto flex items-center justify-between pt-4">
+                    <div className="flex h-10 items-center rounded-full border border-line bg-white">
+                      <button onClick={() => setQuantity(product.id, quantity - 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Decrease quantity">
+                        <HiMinus className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
+                      <button onClick={() => setQuantity(product.id, quantity + 1)} className="grid h-10 w-10 place-items-center rounded-full hover:bg-sand" aria-label="Increase quantity">
+                        <HiPlus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <button onClick={() => deleteFromCart(product.id)} className="flex items-center gap-1.5 text-sm text-muted transition hover:text-red-600">
+                      <HiOutlineTrash className="h-4 w-4" /> Remove
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <Link to="/" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold hover:underline">
+            <HiArrowLeft /> Continue shopping
+          </Link>
         </div>
-      </section>
+
+        {/* summary */}
+        <aside className="h-fit rounded-3xl bg-white p-6 shadow-soft md:p-8 lg:sticky lg:top-28">
+          <h2 className="text-2xl font-medium">Order summary</h2>
+          <dl className="mt-6 space-y-4 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">Subtotal</dt>
+              <dd className="font-medium">{formatPrice(subtotal)}</dd>
+            </div>
+            {coupon && (
+              <div className="flex justify-between text-green-700">
+                <dt>Discount ({coupon})</dt>
+                <dd className="font-medium">−{formatPrice(discount)}</dd>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <dt className="text-muted">Shipping</dt>
+              <dd className="font-medium">{shipping === 0 ? "Free" : formatPrice(shipping)}</dd>
+            </div>
+            <div className="flex justify-between border-t border-line pt-4 text-base">
+              <dt className="font-semibold">Total</dt>
+              <dd className="font-semibold">{formatPrice(total)}</dd>
+            </div>
+          </dl>
+
+          <form onSubmit={applyCoupon} className="mt-6">
+            <label htmlFor="coupon" className="text-sm font-medium">Promo code</label>
+            <div className="mt-2 flex gap-2">
+              <input id="coupon" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className="input h-11" />
+              <button className="btn-outline h-11 px-5">Apply</button>
+            </div>
+            {couponError && <p className="mt-2 text-xs text-red-600">{couponError}</p>}
+          </form>
+
+          <button className="btn-accent mt-6 h-14 w-full text-base">
+            <HiOutlineLockClosed className="h-5 w-5" /> Checkout
+          </button>
+          <p className="mt-3 text-center text-xs text-muted">Taxes calculated at checkout</p>
+        </aside>
+      </div>
     </div>
   );
 }

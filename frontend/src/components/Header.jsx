@@ -1,60 +1,119 @@
-import { Button, Navbar } from "flowbite-react";
-import React, { useContext } from "react";
-import { Link, NavLink } from "react-router";
-import {MdCategory, MdContacts, MdHomeFilled, MdShop2} from "react-icons/md"
-import {FaOpencart, FaShoppingCart} from "react-icons/fa"
-import './header.css'
+import { useContext, useEffect, useState } from "react";
+import { Link, NavLink, useLocation } from "react-router";
+import { HiOutlineShoppingBag, HiOutlineUser, HiOutlineMenuAlt3, HiX } from "react-icons/hi";
 import { ShopContext } from "../context/ShopContext";
+
+const NAV = [
+  { to: "/", label: "Home", end: true },
+  { to: "/mens", label: "Men" },
+  { to: "/womens", label: "Women" },
+  { to: "/kids", label: "Kids" },
+];
+
+const linkClass = ({ isActive }) =>
+  `relative py-1 text-sm font-medium transition-colors after:absolute after:-bottom-0.5 after:left-0 after:h-[2px] after:bg-accent after:transition-all ${
+    isActive ? "text-ink after:w-full" : "text-muted hover:text-ink after:w-0 hover:after:w-full"
+  }`;
 
 export default function Header() {
   const { getTotalCartItems } = useContext(ShopContext);
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { pathname } = useLocation();
+  const count = getTotalCartItems();
+
+  useEffect(() => setOpen(false), [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <div className="">
-      <Navbar fluid rounded className=" shadow-md  p-4">
-        <Navbar.Brand >
-            <Link to={'/'}>
-          <img
-            src="assets/logo.svg"
-            className="mr-3 h-6 sm:h-9"
-            alt="logo"
-          />
-        </Link>
+    <>
+      <div className="bg-ink py-2 text-center text-xs font-medium tracking-wide text-white/90">
+        Free shipping on orders over $75 · Easy 30-day returns
+      </div>
+      <header
+        className={`sticky top-0 z-50 border-b transition-all duration-300 ${
+          scrolled ? "border-line bg-cream/85 backdrop-blur-lg" : "border-transparent bg-cream"
+        }`}
+      >
+        <nav className="container-x flex h-16 items-center justify-between md:h-20">
+          <Link to="/" className="flex items-center gap-2" aria-label="Shoppee home">
+            <img src="/assets/logo.svg" alt="" className="h-8 w-auto md:h-9" />
+          </Link>
 
-        
-        </Navbar.Brand>
-        <div className="flex items-center space-x-1  md:order-2">
+          <ul className="hidden items-center gap-10 md:flex">
+            {NAV.map((item) => (
+              <li key={item.to}>
+                <NavLink to={item.to} end={item.end} className={linkClass}>
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
 
-          <Navbar.Toggle className="mr-4 ring-1 ring-slate-900/30 hover:text-secondary rounded-full" />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link
+              to="/login"
+              className="hidden items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink transition hover:bg-sand sm:flex"
+            >
+              <HiOutlineUser className="h-5 w-5" /> Sign in
+            </Link>
+            <Link
+              to="/cart-page"
+              className="relative grid h-11 w-11 place-items-center rounded-full transition hover:bg-sand"
+              aria-label={`Cart, ${count} items`}
+            >
+              <HiOutlineShoppingBag className="h-6 w-6" />
+              {count > 0 && (
+                <span className="absolute right-1 top-1 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-white ring-2 ring-cream">
+                  {count}
+                </span>
+              )}
+            </Link>
+            <button
+              onClick={() => setOpen((o) => !o)}
+              className="grid h-11 w-11 place-items-center rounded-full transition hover:bg-sand md:hidden"
+              aria-label="Toggle menu"
+              aria-expanded={open}
+            >
+              {open ? <HiX className="h-6 w-6" /> : <HiOutlineMenuAlt3 className="h-6 w-6" />}
+            </button>
+          </div>
+        </nav>
 
-              <Link to={'/cart-page'} className="  ml-5 flex items-center gap-1">
-                    <FaOpencart className="p-1 w-10 h-10 ring-slate-900/30 ring-1 rounded-full"  /> <span className="relative  justify-center flex w-5 h-5 rounded-full bg-secondary text-white medium-14 text-center -top-4 -left-1">{getTotalCartItems()}</span>
+        {/* mobile menu */}
+        <div
+          className={`overflow-hidden border-t border-line bg-cream transition-[max-height] duration-300 md:hidden ${
+            open ? "max-h-96" : "max-h-0 border-transparent"
+          }`}
+        >
+          <ul className="container-x flex flex-col py-3">
+            {NAV.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `block rounded-lg px-3 py-3 font-display text-xl ${isActive ? "text-accent-dark" : "text-ink"}`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+            <li>
+              <Link to="/login" className="mt-2 flex items-center gap-2 rounded-lg px-3 py-3 text-sm font-medium text-muted">
+                <HiOutlineUser className="h-5 w-5" /> Sign in / Create account
               </Link>
-                {/* <Link to={'/logout'} className="flex items-center gap-1 bg-secondary text-white rounded-full p-1 px-4">
-                <img src="assets/logout.svg" alt="" width={35} />
-                <div className=""> logout</div>
-                </Link> */}
-                <Link to={'/login'} className="flex items-center gap-1 bg-secondary text-white rounded-full p-2 px-4">
-                    <img src="assets/user.svg" alt="" width={27} />
-                    <div className=""> Login</div>
-                </Link>
-
+            </li>
+          </ul>
         </div>
-        <Navbar.Collapse>
-          <Navbar.Link className="flex gap-1 items-center" as={NavLink}  to={'/'} >
-             <MdHomeFilled/> Home  
-            </Navbar.Link>
-          <Navbar.Link className="flex gap-1 items-center" as={NavLink}   to={'/kids'}  >
-             <MdCategory/> Kid's 
-              </Navbar.Link>
-          <Navbar.Link className="flex gap-1 items-center" as={NavLink}  to={'/mens'} >
-             <MdShop2/> Men's 
-              </Navbar.Link>
-          <Navbar.Link className="flex gap-1 items-center" as={NavLink}  to={'/womens'} >
-             <MdContacts/> Womens
-               </Navbar.Link>
-       
-        </Navbar.Collapse>
-      </Navbar>
-    </div>
+      </header>
+    </>
   );
 }

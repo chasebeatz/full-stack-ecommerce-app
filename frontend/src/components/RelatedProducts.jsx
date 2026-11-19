@@ -1,20 +1,20 @@
-import React from 'react'
-import { ProductCard } from './ProductCard'
-import POPULAR from '../assets/popular'
+import { useContext } from "react";
+import { ShopContext } from "../context/ShopContext";
+import ProductGrid from "./ProductGrid";
+import SectionHeading from "./SectionHeading";
 
-export default function RelatedProducts() {
+export default function RelatedProducts({ product }) {
+  const { all_products } = useContext(ShopContext);
+  const related = all_products
+    .filter((p) => p.category === product.category && p.id !== product.id)
+    .slice(0, 4);
+
+  if (!related.length) return null;
+
   return (
-    <section className='bg-primary'>
-    <div className='max_padd_container py-12 xl:py-28 xl:w-[88%]'>
-        <h3 className='h3 text-center'>Related Products</h3>
-        <hr className=' h-[3px] md:w-1/2 mx-auto bg-gradient-to-l from-transparent via-black to-transparent mb-16 ' />
-        <div className='grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6'>
-              {POPULAR.map((product) => (
-        <ProductCard key={product.id} product={product} />
-    ))}
-        </div>
-    </div>
-  
-</section>
-  )
+    <section className="mt-12">
+      <SectionHeading eyebrow="You may also like" title="Related products" />
+      <ProductGrid products={related} />
+    </section>
+  );
 }

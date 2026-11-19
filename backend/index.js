@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
 import express from "express";
 import multer from "multer";
+import path from "path";
+import cors from "cors";
 
 const app = express();
 const port = 5000;
+
+app.use(express.json());
+app.use(cors());
 mongoose.connect('mongodb+srv://admin:54321@cluster0.ugix0ql.mongodb.net/ecommercedb?retryWrites=true&w=majority&appName=Cluster0/')
 
 const storage = multer.diskStorage({
@@ -71,7 +76,7 @@ app.post('/addproducts', async (req, res) => {
     }
 
     const product = new Product({
-        id:req.body.id,
+        id:id,
         name:req.body.name,
         new_price:req.body.new_price,
         old_price:req.body.old_price,

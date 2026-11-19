@@ -1,59 +1,65 @@
-
-"use client";
-
-import { Footer } from "flowbite-react";
-import { BsDribbble, BsFacebook, BsGithub, BsInstagram, BsTwitter } from "react-icons/bs";
 import { Link } from "react-router";
+import { BsFacebook, BsInstagram, BsTwitterX, BsPinterest } from "react-icons/bs";
+
+const COLUMNS = [
+  { title: "Shop", links: [["Men", "/mens"], ["Women", "/womens"], ["Kids", "/kids"], ["New arrivals", "/"]] },
+  { title: "Help", links: [["Shipping", "/"], ["Returns", "/"], ["Size guide", "/"], ["Contact us", "/"]] },
+  { title: "Company", links: [["About", "/"], ["Careers", "/"], ["Privacy policy", "/"], ["Terms", "/"]] },
+];
+
+const SOCIALS = [
+  [BsInstagram, "Instagram"],
+  [BsFacebook, "Facebook"],
+  [BsTwitterX, "X"],
+  [BsPinterest, "Pinterest"],
+];
 
 export function MyFooter() {
   return (
-    <Footer container>
-      <div className="w-full ">
-        <div className="flex flex-wrap justify-between">
-          <div>
-            <Footer.Brand
-              href="https://flowbite.com"
-              src="https://flowbite.com/docs/images/logo.svg"
-              alt="Flowbite Logo"
-              name="Shoppee"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-8 sm:mt-4 sm:grid-cols-3 md:grid-cols-4 sm:gap-6">
-            <div>
-              <Footer.Title title="Learn More" className="text-black"  />
-              <Footer.LinkGroup col>
-                <Footer.Link as={Link} to={'/'}>Flowbite</Footer.Link>
-                <Footer.Link as={Link} to={'/'}>Tailwind CSS</Footer.Link>
-              </Footer.LinkGroup>
-            </div>
-            <div>
-              <Footer.Title title="Our Community" className="text-black"  />
-              <Footer.LinkGroup col>
-                <Footer.Link as={Link} to={'/'}>Github</Footer.Link>
-                <Footer.Link as={Link} to={'/'}>Discord</Footer.Link>
-              </Footer.LinkGroup>
-            </div>
-            <div>
-              <Footer.Title title="Contact Us" className="text-black" />
-              <Footer.LinkGroup col>
-                <Footer.Link as={Link} to={'/'}>Privacy Policy</Footer.Link>
-                <Footer.Link as={Link} to={'/'}>Terms &amp; Conditions</Footer.Link>
-              </Footer.LinkGroup>
-            </div>
-            <div className="mt-4 flex space-x-6 sm:mt-0 sm:justify-center">
-            <Footer.Icon as={Link} to={'/'} icon={BsFacebook} />
-            <Footer.Icon as={Link} to={'/'} icon={BsInstagram} />
-            <Footer.Icon as={Link} to={'/'} icon={BsTwitter} />
-            <Footer.Icon as={Link} to={'/'} icon={BsGithub} />
-            <Footer.Icon as={Link} to={'/'} icon={BsDribbble} />
-          </div>
+    <footer className="bg-ink text-white/70">
+      <div className="container-x grid gap-12 py-16 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+        <div className="max-w-xs">
+          <Link to="/" className="inline-flex rounded-lg bg-white px-3 py-2">
+            <img src="/assets/logo.svg" alt="Shoppee" className="h-7" />
+          </Link>
+          <p className="mt-5 text-sm leading-relaxed">
+            Everyday pieces made to last. Thoughtfully designed clothing for the whole family.
+          </p>
+          <div className="mt-6 flex gap-3">
+            {SOCIALS.map(([Icon, label]) => (
+              <a
+                key={label}
+                href="#"
+                aria-label={label}
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/15 transition hover:border-accent hover:bg-accent hover:text-white"
+              >
+                <Icon />
+              </a>
+            ))}
           </div>
         </div>
-        <Footer.Divider className="w-[90%]" />
-        <div className="w-full flex items-center justify-center">
-          <Footer.Copyright as={Link} to={'/'} by="Shopee | All rights reserved" year={2024} />
+
+        {COLUMNS.map((col) => (
+          <div key={col.title}>
+            <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-white">{col.title}</h4>
+            <ul className="mt-5 space-y-3 text-sm">
+              {col.links.map(([label, to]) => (
+                <li key={label}>
+                  <Link to={to} className="transition hover:text-white">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-white/10">
+        <div className="container-x flex flex-col items-center justify-between gap-3 py-6 text-xs sm:flex-row">
+          <p>© {new Date().getFullYear()} Shoppee. All rights reserved.</p>
+          <p>Secure payments · Visa · Mastercard · PayPal</p>
         </div>
       </div>
-    </Footer>
+    </footer>
   );
 }

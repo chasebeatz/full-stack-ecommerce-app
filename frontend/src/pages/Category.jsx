@@ -1,34 +1,71 @@
-import React from "react";
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
-import all_products from "../assets/all_products";
-import { ProductCard } from "../components/ProductCard";
+import { useContext, useMemo, useState } from "react";
+import { ShopContext } from "../context/ShopContext";
+import ProductGrid from "../components/ProductGrid";
+
+const PAGE_SIZE = 8;
+const SORTS = {
+  featured: { label: "Featured", fn: () => 0 },
+  "price-asc": { label: "Price: low to high", fn: (a, b) => a.new_price - b.new_price },
+  "price-desc": { label: "Price: high to low", fn: (a, b) => b.new_price - a.new_price },
+  discount: {
+    label: "Biggest discount",
+    fn: (a, b) => (b.old_price - b.new_price) / b.old_price - (a.old_price - a.new_price) / a.old_price,
+  },
+};
+const TITLES = { men: "Men", women: "Women", kid: "Kids" };
 
 export default function Category({ category, banner }) {
+  const { all_products } = useContext(ShopContext);
+  const [sort, setSort] = useState("featured");
+  const [visible, setVisible] = useState(PAGE_SIZE);
+
+  const products = useMemo(
+    () => all_products.filter((p) => p.category === category).sort(SORTS[sort].fn),
+    [all_products, category, sort]
+  );
+  const shown = products.slice(0, visible);
+
   return (
-    <div className="py-12 xl:py-28 max_padd_container">
-      <section>
+    <div className="container-x py-8 md:py-12">
+      <div className="overflow-hidden rounded-3xl bg-sand">
+        <img src={banner} alt={`${TITLES[category]} collection`} className="block w-full object-cover" />
+      </div>
+
+      <div className="mt-12 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
         <div>
-          <img src={banner} className="block my-7 mx-auto" alt="" />
+          <h1 className="text-4xl font-medium md:text-5xl">{TITLES[category]}</h1>
+          <p className="mt-2 text-sm text-muted">
+            Showing {shown.length} of {products.length} products
+          </p>
         </div>
-        <div className="flexBetween my-8 mx-2">
-          <h5>
-            <span className="font-bold">Showing 1-12</span> out of 36 products
-          </h5>
-          <div className="flexBetween max-sm:p-4 gap-x-4 px-8 py-3 rounded-5xl ring-1 ring-slate-900/15">
-            Sort by <MdOutlineKeyboardArrowDown />
+        <label className="flex items-center gap-3 text-sm">
+          <span className="text-muted">Sort by</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="rounded-full border-line bg-white py-2.5 pl-4 pr-10 text-sm font-medium focus:border-ink focus:ring-0"
+          >
+            {Object.entries(SORTS).map(([key, { label }]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-10">
+        <ProductGrid products={shown} />
+      </div>
+
+      {visible < products.length && (
+        <div className="mt-16 flex flex-col items-center gap-4">
+          <div className="h-1 w-48 overflow-hidden rounded-full bg-line">
+            <div className="h-full bg-ink" style={{ width: `${(shown.length / products.length) * 100}%` }} />
           </div>
+          <button onClick={() => setVisible((v) => v + PAGE_SIZE)} className="btn-outline px-10">
+            Load more
+          </button>
         </div>
-        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-          {all_products.map((product) => {
-            if (product.category === category) {
-            return  <ProductCard key={product.id} product={product} />;
-            }
-          })}
-        </div>
-        <div className="mt-16 text-center">
-            <button className="btn_dark_rounded">Load more</button>
-        </div>
-      </section>
+      )}
     </div>
   );
 }

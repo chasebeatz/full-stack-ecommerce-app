@@ -1,20 +1,24 @@
-import React from 'react'
-import logo from '../assets/logo.svg'
-import profileImg from '../assets/profile.png'
+import logo from "../assets/logo.svg";
+import profileImg from "../assets/profile.png";
 
 export default function NavBar() {
   return (
-    <nav className='max_padd_container flex justify-between items-center bg-white py-2 ring-1 ring-slate-900/5 relative'>
-        <div>
-            <img src={logo} alt="" />
-        </div>
-        <div className='uppercase text-white bg-secondary px-3 rounded-md tracking-widest line-clamp-1 max-xs:bold-18 max-xs:py-2 max-xs:px-1'>
+    <header className="sticky top-0 z-30 border-b border-line bg-cream/85 backdrop-blur-lg">
+      <div className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-4 sm:px-6 lg:px-10">
+        <div className="flex items-center gap-3">
+          <img src={logo} alt="Shoppee" className="h-8" />
+          <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">
             Admin
+          </span>
         </div>
-        <div>
-            <img src={profileImg} alt="" className='h-12 w-12 rounded-full' />
+        <div className="flex items-center gap-3">
+          <div className="hidden text-right sm:block">
+            <p className="text-sm font-semibold leading-tight">Store admin</p>
+            <p className="text-xs text-muted">Shoppee</p>
+          </div>
+          <img src={profileImg} alt="Profile" className="h-10 w-10 rounded-full object-cover ring-2 ring-white" />
         </div>
-
-    </nav>
-  )
+      </div>
+    </header>
+  );
 }
