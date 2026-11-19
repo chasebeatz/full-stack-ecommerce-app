@@ -22,6 +22,14 @@ create policy "Products are publicly readable"
   on public.products for select
   using (true);
 
+
+-- Newer Supabase projects don't grant API roles access to tables created in SQL.
+-- The backend (service_role) needs full access; the public roles may only read (RLS enforces this too).
+grant usage on schema public to anon, authenticated, service_role;
+grant select, insert, update, delete on public.products to service_role;
+grant usage, select on all sequences in schema public to service_role;
+grant select on public.products to anon, authenticated;
+
 -- Public bucket for product images (uploads go through the backend).
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
