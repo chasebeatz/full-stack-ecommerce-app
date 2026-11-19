@@ -10,6 +10,7 @@ import bannermens from "./assets/bannermens.png";
 import bannerkids from "./assets/bannerkids.png";
 import Login from "./pages/Login";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
 import Product from "./pages/Product";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/womens" element={<Category key="women" category="women" banner={bannerwomens} />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth/confirm" element={<ConfirmEmail />} />
           <Route path="/product/:productId" element={<Product />} />
           <Route path="/cart-page" element={<Cart />} />
           <Route path="/checkout" element={<RequireAuth><Checkout /></RequireAuth>} />

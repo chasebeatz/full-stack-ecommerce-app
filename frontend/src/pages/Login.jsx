@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiArrowLeft, HiOutlineMail } from "react-icons/hi";
 import loginImg from "../assets/product_5.png";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import PasswordInput from "../components/PasswordInput";
 import FormAlert from "../components/FormAlert";
+import { safeRedirect } from "../lib/safeRedirect";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,10 +17,10 @@ const COPY = {
 };
 
 export default function Login() {
-  const { user, login, signup } = useAuth();
+  const { user, login, signup, resendConfirmation } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const redirect = params.get("redirect")?.startsWith("/") ? params.get("redirect") : "/";
+  const redirect = safeRedirect(params.get("redirect"));
 
   const [mode, setMode] = useState(params.get("mode") === "signup" ? "signup" : "login");
   const [form, setForm] = useState({ name: "", email: "", password: "", terms: false });
@@ -27,12 +28,26 @@ export default function Login() {
   const [serverError, setServerError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false); // sign-in blocked until email is confirmed
+  const [sentTo, setSentTo] = useState(""); // shows the "check your email" screen
+  const [resendState, setResendState] = useState({ busy: false, message: "", error: "" });
 
   useEffect(() => {
     setErrors({});
     setServerError("");
     setNotice("");
+    setUnconfirmed(false);
   }, [mode]);
+
+  const resend = async (email) => {
+    setResendState({ busy: true, message: "", error: "" });
+    try {
+      const data = await resendConfirmation(email, redirect);
+      setResendState({ busy: false, message: data.message, error: "" });
+    } catch (err) {
+      setResendState({ busy: false, message: "", error: err.message });
+    }
+  };
 
   if (user) return <Navigate to={redirect} replace />;
 
@@ -67,19 +82,25 @@ export default function Login() {
     e.preventDefault();
     setServerError("");
     setNotice("");
+    setUnconfirmed(false);
+    setResendState({ busy: false, message: "", error: "" });
     if (!validate()) return;
     setBusy(true);
     try {
       if (mode === "forgot") {
         const data = await api("/auth/forgot", { method: "POST", body: { email: form.email.trim() } });
         setNotice(data.message);
+      } else if (mode === "signup") {
+        const result = await signup(form.name.trim(), form.email.trim(), form.password, redirect);
+        if (result.needsConfirmation) setSentTo(result.email);
+        else navigate(redirect, { replace: true });
       } else {
-        if (mode === "signup") await signup(form.name.trim(), form.email.trim(), form.password);
-        else await login(form.email.trim(), form.password);
+        await login(form.email.trim(), form.password);
         navigate(redirect, { replace: true });
       }
     } catch (err) {
       setServerError(err.message);
+      if (err.code === "email_not_confirmed") setUnconfirmed(true);
     } finally {
       setBusy(false);
     }
@@ -93,6 +114,43 @@ export default function Login() {
     );
   const invalid = (name) => (errors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
   const isSignup = mode === "signup";
+
+  if (sentTo) {
+    return (
+      <div className="container-x py-16">
+        <div className="mx-auto max-w-md rounded-[28px] bg-white p-8 text-center shadow-soft sm:p-10">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent-soft">
+            <HiOutlineMail className="h-8 w-8 text-accent-dark" />
+          </span>
+          <h1 className="mt-6 text-3xl font-medium">Check your email</h1>
+          <p className="mt-3 text-muted">
+            We sent a confirmation link to <span className="font-semibold text-ink">{sentTo}</span>. Click it to activate your
+            account. You&apos;ll be signed in automatically.
+          </p>
+          <p className="mt-3 text-sm text-muted">Can&apos;t find it? Check your spam or promotions folder.</p>
+          <div className="mt-8 space-y-3 text-left">
+            <FormAlert type="success">{resendState.message}</FormAlert>
+            <FormAlert>{resendState.error}</FormAlert>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            <button onClick={() => resend(sentTo)} disabled={resendState.busy} className="btn-outline h-12">
+              {resendState.busy ? "Sending…" : "Resend email"}
+            </button>
+            <button
+              onClick={() => {
+                setSentTo("");
+                setResendState({ busy: false, message: "", error: "" });
+                switchMode("login");
+              }}
+              className="text-sm font-medium text-muted hover:text-ink"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-x py-10 md:py-16">
@@ -129,6 +187,20 @@ export default function Login() {
 
           <form onSubmit={submit} noValidate className="mt-8 space-y-4">
             <FormAlert>{serverError}</FormAlert>
+            {unconfirmed && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => resend(form.email.trim())}
+                  disabled={resendState.busy}
+                  className="text-sm font-semibold underline underline-offset-4 hover:text-accent-dark"
+                >
+                  {resendState.busy ? "Sending…" : "Resend confirmation email"}
+                </button>
+                <FormAlert type="success">{resendState.message}</FormAlert>
+                <FormAlert>{resendState.error}</FormAlert>
+              </div>
+            )}
             <FormAlert type="success">{notice}</FormAlert>
 
             {isSignup && (

@@ -1,9 +1,10 @@
 export const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
 
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -24,7 +25,7 @@ export async function api(path, { method = "GET", body, token } = {}) {
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.success === false) {
-    throw new ApiError(data.message || `Something went wrong (${res.status})`, res.status);
+    throw new ApiError(data.message || `Something went wrong (${res.status})`, res.status, data.code);
   }
   return data;
 }

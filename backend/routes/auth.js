@@ -4,6 +4,12 @@ import { publicUser, requireUser, sessionPayload } from "../lib/auth.js";
 
 const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+
+// Only same-site paths like "/checkout"; never "//other-site.com".
+const safePath = (p) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : "/");
+const confirmUrl = (redirect) => `${FRONTEND_URL}/auth/confirm?redirect=${encodeURIComponent(safePath(redirect))}`;
+const isRateLimited = (error) => error?.status === 429 || error?.code === "over_email_send_rate_limit";
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
 
@@ -17,25 +23,29 @@ router.post("/signup", async (req, res, next) => {
     if (!EMAIL_RE.test(email)) return fail(res, 400, "Please enter a valid email address");
     if (password.length < 8) return fail(res, 400, "Password must be at least 8 characters");
 
-    // Accounts are confirmed immediately. Supabase's built-in email sender only allows a
-    // couple of emails per hour, so requiring confirmation would block sign-ups in practice.
-    const { error } = await supabase.auth.admin.createUser({
+    // Supabase emails a confirmation link; the account can't sign in until it's clicked.
+    const { data, error } = await createAuthClient().auth.signUp({
       email,
       password,
-      email_confirm: true,
-      user_metadata: { name },
+      options: { data: { name }, emailRedirectTo: confirmUrl(req.body.redirect) },
     });
     if (error) {
-      if (error.code === "email_exists" || /already/i.test(error.message)) {
-        return fail(res, 409, "An account with this email already exists. Try signing in.");
-      }
       if (error.code === "weak_password") return fail(res, 400, error.message);
+      if (isRateLimited(error)) {
+        return fail(res, 429, "Too many confirmation emails were sent recently. Please try again later.");
+      }
+      if (error.code === "email_address_not_authorized") {
+        return fail(res, 400, "We can't send email to that address yet. Please try another email or contact support.");
+      }
       throw error;
     }
-
-    const { data, error: loginError } = await createAuthClient().auth.signInWithPassword({ email, password });
-    if (loginError) throw loginError;
-    res.status(201).json({ success: true, ...sessionPayload(data.session) });
+    // For an already-confirmed email, Supabase returns a placeholder user with no identities.
+    if (data.user && data.user.identities?.length === 0) {
+      return fail(res, 409, "An account with this email already exists. Try signing in.");
+    }
+    // If confirmation is switched off in Supabase, a session comes back straight away.
+    if (data.session) return res.status(201).json({ success: true, ...sessionPayload(data.session) });
+    res.status(201).json({ success: true, needs_confirmation: true, email });
   } catch (err) {
     next(err);
   }
@@ -49,6 +59,13 @@ router.post("/login", async (req, res, next) => {
 
     const { data, error } = await createAuthClient().auth.signInWithPassword({ email, password });
     if (error) {
+      if (error.code === "email_not_confirmed") {
+        return res.status(403).json({
+          success: false,
+          code: "email_not_confirmed",
+          message: "Please confirm your email first. Check your inbox for the link we sent.",
+        });
+      }
       if (error.status === 400 || error.code === "invalid_credentials") {
         return fail(res, 401, "Incorrect email or password");
       }
@@ -73,6 +90,23 @@ router.post("/refresh", async (req, res, next) => {
   }
 });
 
+router.post("/resend-confirmation", async (req, res, next) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) return fail(res, 400, "Please enter a valid email address");
+    const { error } = await createAuthClient().auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: confirmUrl(req.body.redirect) },
+    });
+    if (isRateLimited(error)) return fail(res, 429, "Please wait a minute before requesting another email.");
+    if (error) console.error("resend confirmation:", error.message);
+    res.json({ success: true, message: "If that account still needs confirming, a new link is on its way." });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/me", requireUser, (req, res) => {
   res.json({ success: true, user: req.user });
 });
@@ -82,7 +116,7 @@ router.post("/forgot", async (req, res, next) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     if (!EMAIL_RE.test(email)) return fail(res, 400, "Please enter a valid email address");
 
-    const redirectTo = `${process.env.FRONTEND_URL || "http://localhost:5173"}/reset-password`;
+    const redirectTo = `${FRONTEND_URL}/reset-password`;
     const { error } = await createAuthClient().auth.resetPasswordForEmail(email, { redirectTo });
     if (error?.status === 429) {
       return fail(res, 429, "Too many reset emails were sent recently. Please try again later.");

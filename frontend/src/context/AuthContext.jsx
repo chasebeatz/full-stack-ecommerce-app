@@ -101,10 +101,22 @@ export function AuthProvider({ children }) {
   const login = async (email, password) =>
     setSession(await api("/auth/login", { method: "POST", body: { email, password } }));
 
-  const signup = async (name, email, password) =>
-    setSession(await api("/auth/signup", { method: "POST", body: { name, email, password } }));
+  // Returns { needsConfirmation: true } when Supabase has emailed a confirmation link.
+  const signup = async (name, email, password, redirect) => {
+    const data = await api("/auth/signup", { method: "POST", body: { name, email, password, redirect } });
+    if (data.needs_confirmation) return { needsConfirmation: true, email: data.email };
+    setSession(data);
+    return { needsConfirmation: false };
+  };
 
-  const value = { user: session?.user || null, login, signup, logout, authApi };
+  const resendConfirmation = (email, redirect) =>
+    api("/auth/resend-confirmation", { method: "POST", body: { email, redirect } });
+
+  // Finish signing in from the tokens in an email confirmation link.
+  const completeEmailSignIn = async (refresh_token) =>
+    setSession(await api("/auth/refresh", { method: "POST", body: { refresh_token } }));
+
+  const value = { user: session?.user || null, login, signup, logout, authApi, resendConfirmation, completeEmailSignIn };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
