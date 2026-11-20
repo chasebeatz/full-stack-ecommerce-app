@@ -1,7 +1,3 @@
-# Old Vite/Express apps (replaced by the Next.js app) — never upload them; backend/.env holds secrets.
-frontend
-admin
-backend
 ASSETS-*
 .env
 .env.*
