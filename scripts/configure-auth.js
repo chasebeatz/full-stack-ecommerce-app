@@ -1,11 +1,11 @@
 // Sets the Site URL and allowed redirect URLs for Supabase Auth.
-// Needs SUPABASE_ACCESS_TOKEN in .env (supabase.com/dashboard/account/tokens).
-// Usage: npm run configure-auth                       (uses FRONTEND_URL)
+// Needs SUPABASE_ACCESS_TOKEN in .env.local (supabase.com/dashboard/account/tokens).
+// Usage: npm run configure-auth                       (uses SITE_URL, default http://localhost:3000)
 //        npm run configure-auth -- https://my-shop.vercel.app   (adds a production URL too)
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 const ref = process.env.SUPABASE_URL?.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1];
 if (!token) {
-  console.error("Add SUPABASE_ACCESS_TOKEN to backend/.env first (supabase.com/dashboard/account/tokens).");
+  console.error("Add SUPABASE_ACCESS_TOKEN to .env.local first (supabase.com/dashboard/account/tokens).");
   process.exit(1);
 }
 if (!ref) {
@@ -13,7 +13,7 @@ if (!ref) {
   process.exit(1);
 }
 
-const local = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+const local = (process.env.SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 const production = process.argv[2]?.replace(/\/$/, "");
 const endpoint = `https://api.supabase.com/v1/projects/${ref}/config/auth`;
 const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -30,7 +30,7 @@ urls.add(`${local}/**`);
 if (production) urls.add(`${production}/**`);
 
 const body = {
-  // Supabase's default Site URL is http://localhost:3000, which isn't where this storefront runs.
+  // Supabase's default Site URL is http://localhost:3000, which is fine locally, but production should point at the live site.
   site_url: production || (config.site_url && config.site_url !== "http://localhost:3000" ? config.site_url : local),
   uri_allow_list: [...urls].join(","),
 };

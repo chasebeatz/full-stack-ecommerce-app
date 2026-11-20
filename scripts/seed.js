@@ -4,10 +4,12 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { supabase, BUCKET } from "../lib/supabase.js";
+import { getSupabase, BUCKET } from "../lib/server/supabase.js";
+
+const supabase = getSupabase();
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const assetsDir = path.resolve(here, "../../frontend/src/assets");
+const assetsDir = path.resolve(here, "../supabase/seed");
 const source = await readFile(path.join(assetsDir, "all_products.js"), "utf8");
 
 // all_products.js imports .png files, so Node can't import it directly; parse it instead.
@@ -36,7 +38,7 @@ console.log(`Found ${products.length} products in all_products.js`);
 
 const { count, error: countError } = await supabase.from("products").select("*", { count: "exact", head: true });
 if (countError) {
-  console.error("Could not read the products table. Did you run supabase/schema.sql?\n", countError.message);
+  console.error("Could not read the products table. Did you run npm run setup-db (or supabase/schema.sql)?\n", countError.message);
   process.exit(1);
 }
 if (count > 0 && !process.argv.includes("--force")) {

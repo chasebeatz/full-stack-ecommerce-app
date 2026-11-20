@@ -1,12 +1,12 @@
 // Runs supabase/schema.sql and supabase/orders.sql against your database.
-// Needs DATABASE_URL in .env (Supabase: Connect -> Session pooler connection string).
+// Needs DATABASE_URL in .env.local (Supabase: Connect -> Session pooler connection string).
 import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import pg from "pg";
 
 if (!process.env.DATABASE_URL) {
-  console.error("Add DATABASE_URL to backend/.env first (Supabase dashboard -> Connect -> Session pooler).");
+  console.error("Add DATABASE_URL to .env.local first (Supabase dashboard -> Connect -> Session pooler).");
   process.exit(1);
 }
 

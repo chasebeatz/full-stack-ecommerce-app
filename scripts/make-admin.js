@@ -1,7 +1,9 @@
 // Gives a user admin access to the admin dashboard.
 // Usage: npm run make-admin -- you@example.com              (existing account)
 //        npm run make-admin -- you@example.com "password"   (creates the account if needed)
-import { supabase } from "../lib/supabase.js";
+import { getSupabase } from "../lib/server/supabase.js";
+
+const supabase = getSupabase();
 
 const [email, password] = process.argv.slice(2);
 if (!email) {

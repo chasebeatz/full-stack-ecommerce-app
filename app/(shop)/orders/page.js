@@ -1,0 +1,76 @@
+import Link from "next/link";
+import Image from "next/image";
+import { redirect } from "next/navigation";
+import { HiCheckCircle, HiOutlineShoppingBag } from "react-icons/hi";
+import { getCurrentUser } from "@/lib/server/session";
+import { getOrdersForUser } from "@/lib/server/orders";
+import { STATUS_STYLE, formatDate, formatPrice } from "@/lib/format";
+
+export const metadata = { title: "My orders" };
+
+export default async function OrdersPage({ searchParams }) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login?redirect=/orders");
+
+  const orders = await getOrdersForUser(user.id);
+  const placedId = Number((await searchParams).placed);
+  const placed = orders.find((o) => o.id === placedId);
+
+  return (
+    <div className="container-x py-10 md:py-14">
+      {placed && (
+        <div className="mb-10 rounded-3xl bg-white p-8 text-center shadow-soft">
+          <HiCheckCircle className="mx-auto h-14 w-14 text-green-600" />
+          <h1 className="mt-4 text-3xl font-medium md:text-4xl">Thank you for your order!</h1>
+          <p className="mt-2 text-muted">
+            Order <span className="font-semibold text-ink">#{placed.id}</span> is confirmed. You&apos;ll pay{" "}
+            <span className="font-semibold text-ink">{formatPrice(placed.total)}</span> on delivery.
+          </p>
+          <Link href="/" className="btn-dark mt-6">Continue shopping</Link>
+        </div>
+      )}
+
+      {placed ? <h2 className="text-3xl font-medium md:text-4xl">My orders</h2> : <h1 className="text-3xl font-medium md:text-4xl">My orders</h1>}
+
+      {orders.length === 0 ? (
+        <div className="mt-8 flex flex-col items-center rounded-3xl bg-white px-6 py-16 text-center">
+          <HiOutlineShoppingBag className="h-10 w-10 text-muted" />
+          <p className="mt-4 font-medium">No orders yet</p>
+          <Link href="/" className="btn-dark mt-6">Start shopping</Link>
+        </div>
+      ) : (
+        <ul className="mt-8 space-y-5">
+          {orders.map((order) => (
+            <li key={order.id} className={`overflow-hidden rounded-3xl bg-white shadow-soft ${order.id === placedId ? "ring-2 ring-accent" : ""}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-cream/60 px-6 py-4 text-sm">
+                <div className="flex flex-wrap gap-x-8 gap-y-1">
+                  <p><span className="text-muted">Order </span><span className="font-semibold">#{order.id}</span></p>
+                  <p><span className="text-muted">Placed </span>{formatDate(order.created_at)}</p>
+                  <p><span className="text-muted">Total </span><span className="font-semibold">{formatPrice(order.total)}</span></p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${STATUS_STYLE[order.status] || ""}`}>{order.status}</span>
+              </div>
+              <ul className="divide-y divide-line px-6">
+                {order.items.map((item, i) => (
+                  <li key={i} className="flex items-center gap-4 py-4">
+                    <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-sand">
+                      <Image src={item.image} alt="" fill sizes="56px" className="object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/product/${item.id}`} className="line-clamp-1 text-sm font-medium hover:underline">{item.name}</Link>
+                      <p className="text-xs text-muted">Size {item.size} · Qty {item.quantity}</p>
+                    </div>
+                    <p className="text-sm font-medium">{formatPrice(item.price * item.quantity)}</p>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-line px-6 py-4 text-sm text-muted">
+                Shipping to {order.shipping_address.name}, {order.shipping_address.address}, {order.shipping_address.city}, {order.shipping_address.country}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

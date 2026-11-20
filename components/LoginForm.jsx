@@ -1,0 +1,260 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { HiArrowLeft, HiOutlineMail } from "react-icons/hi";
+import loginImg from "@/assets/product_5.png";
+import { useAuth } from "@/context/AuthContext";
+import { api, safeRedirect } from "@/lib/api";
+import PasswordInput from "./PasswordInput";
+import FormAlert from "./FormAlert";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COPY = {
+  signup: { title: "Create an account", button: "Create account", busy: "Creating account…" },
+  login: { title: "Welcome back", button: "Sign in", busy: "Signing in…" },
+  forgot: { title: "Reset your password", button: "Send reset link", busy: "Sending…" },
+};
+const NO_RESEND = { busy: false, message: "", error: "" };
+
+export default function LoginForm() {
+  const { user, login, signup, resendConfirmation } = useAuth();
+  const router = useRouter();
+  const params = useSearchParams();
+  const redirect = safeRedirect(params.get("redirect"));
+
+  const [mode, setMode] = useState(params.get("mode") === "signup" ? "signup" : "login");
+  const [form, setForm] = useState({ name: "", email: "", password: "", terms: false });
+  const [errors, setErrors] = useState({});
+  const [serverError, setServerError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [unconfirmed, setUnconfirmed] = useState(false); // sign-in blocked until the email is confirmed
+  const [sentTo, setSentTo] = useState(""); // shows the "check your email" screen
+  const [resendState, setResendState] = useState(NO_RESEND);
+
+  // Already signed in (e.g. opened /login in a new tab): go where they were heading.
+  useEffect(() => {
+    if (user && !busy) router.replace(redirect);
+  }, [user, busy, redirect, router]);
+
+  const switchMode = (next) => {
+    setMode(next);
+    setErrors({});
+    setServerError("");
+    setNotice("");
+    setUnconfirmed(false);
+    setResendState(NO_RESEND);
+    const p = new URLSearchParams(params);
+    if (next === "signup") p.set("mode", "signup");
+    else p.delete("mode");
+    router.replace(`/login${p.size ? `?${p}` : ""}`, { scroll: false });
+  };
+
+  const resend = async (email) => {
+    setResendState({ busy: true, message: "", error: "" });
+    try {
+      const data = await resendConfirmation(email, redirect);
+      setResendState({ busy: false, message: data.message, error: "" });
+    } catch (err) {
+      setResendState({ busy: false, message: "", error: err.message });
+    }
+  };
+
+  const update = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((f) => ({ ...f, [name]: type === "checkbox" ? checked : value }));
+    setErrors((er) => ({ ...er, [name]: undefined }));
+  };
+
+  const validate = () => {
+    const er = {};
+    if (mode === "signup" && !form.name.trim()) er.name = "Please enter your name";
+    if (!EMAIL_RE.test(form.email.trim())) er.email = "Please enter a valid email address";
+    if (mode !== "forgot") {
+      if (!form.password) er.password = "Please enter your password";
+      else if (mode === "signup" && form.password.length < 8) er.password = "Use at least 8 characters";
+    }
+    if (mode === "signup" && !form.terms) er.terms = "Please accept the terms to continue";
+    setErrors(er);
+    const first = Object.keys(er)[0];
+    if (first) document.getElementById(first)?.focus();
+    return !first;
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setServerError("");
+    setNotice("");
+    setUnconfirmed(false);
+    setResendState(NO_RESEND);
+    if (!validate()) return;
+    setBusy(true);
+    try {
+      if (mode === "forgot") {
+        const data = await api("/api/auth/forgot", { method: "POST", body: { email: form.email.trim() } });
+        setNotice(data.message);
+      } else if (mode === "signup") {
+        const result = await signup(form.name.trim(), form.email.trim(), form.password, redirect);
+        if (result.needsConfirmation) setSentTo(result.email);
+        else router.replace(redirect);
+      } else {
+        await login(form.email.trim(), form.password);
+        router.replace(redirect);
+      }
+    } catch (err) {
+      setServerError(err.message);
+      if (err.code === "email_not_confirmed") setUnconfirmed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fieldError = (name) =>
+    errors[name] && <p id={`${name}-error`} className="mt-1.5 text-xs text-red-600">{errors[name]}</p>;
+  const invalid = (name) => (errors[name] ? { "aria-invalid": true, "aria-describedby": `${name}-error` } : {});
+  const isSignup = mode === "signup";
+
+  if (sentTo) {
+    return (
+      <div className="container-x py-16">
+        <div className="mx-auto max-w-md rounded-[28px] bg-white p-8 text-center shadow-soft sm:p-10">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent-soft">
+            <HiOutlineMail className="h-8 w-8 text-accent-dark" />
+          </span>
+          <h1 className="mt-6 text-3xl font-medium">Check your email</h1>
+          <p className="mt-3 text-muted">
+            We sent a confirmation link to <span className="font-semibold text-ink">{sentTo}</span>. Click it to activate your
+            account — you&apos;ll be signed in automatically.
+          </p>
+          <p className="mt-3 text-sm text-muted">Can&apos;t find it? Check your spam or promotions folder.</p>
+          <div className="mt-8 space-y-3 text-left">
+            <FormAlert type="success">{resendState.message}</FormAlert>
+            <FormAlert>{resendState.error}</FormAlert>
+          </div>
+          <div className="mt-4 flex flex-col gap-3">
+            <button onClick={() => resend(sentTo)} disabled={resendState.busy} className="btn-outline h-12">
+              {resendState.busy ? "Sending…" : "Resend email"}
+            </button>
+            <button
+              onClick={() => {
+                setSentTo("");
+                switchMode("login");
+              }}
+              className="text-sm font-medium text-muted hover:text-ink"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-x py-10 md:py-16">
+      <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[28px] bg-white shadow-soft md:grid-cols-2">
+        <div className="relative hidden min-h-[560px] bg-sand md:block">
+          <Image src={loginImg} alt="" fill placeholder="blur" sizes="512px" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-10 text-white">
+            <h2 className="text-3xl font-medium leading-tight">Members get more.</h2>
+            <p className="mt-2 text-sm text-white/80">Track your orders, check out faster and get 10% off with code WELCOME10.</p>
+          </div>
+        </div>
+
+        <div className="p-8 sm:p-12">
+          {mode === "forgot" && (
+            <button onClick={() => switchMode("login")} className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink">
+              <HiArrowLeft /> Back to sign in
+            </button>
+          )}
+          <h1 className="text-3xl font-medium md:text-4xl">{COPY[mode].title}</h1>
+          {mode === "forgot" ? (
+            <p className="mt-2 text-sm text-muted">Enter your email and we&apos;ll send you a link to choose a new password.</p>
+          ) : (
+            <p className="mt-2 text-sm text-muted">
+              {isSignup ? "Already have an account? " : "New to Shoppee? "}
+              <button
+                onClick={() => switchMode(isSignup ? "login" : "signup")}
+                className="font-semibold text-ink underline underline-offset-4 hover:text-accent-dark"
+              >
+                {isSignup ? "Sign in" : "Create one"}
+              </button>
+            </p>
+          )}
+
+          <form onSubmit={submit} noValidate className="mt-8 space-y-4">
+            <FormAlert>{serverError}</FormAlert>
+            {unconfirmed && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => resend(form.email.trim())}
+                  disabled={resendState.busy}
+                  className="text-sm font-semibold underline underline-offset-4 hover:text-accent-dark"
+                >
+                  {resendState.busy ? "Sending…" : "Resend confirmation email"}
+                </button>
+                <FormAlert type="success">{resendState.message}</FormAlert>
+                <FormAlert>{resendState.error}</FormAlert>
+              </div>
+            )}
+            <FormAlert type="success">{notice}</FormAlert>
+
+            {isSignup && (
+              <div>
+                <label htmlFor="name" className="label">Full name</label>
+                <input id="name" name="name" value={form.name} onChange={update} autoComplete="name" className="input" placeholder="Jane Doe" {...invalid("name")} />
+                {fieldError("name")}
+              </div>
+            )}
+            <div>
+              <label htmlFor="email" className="label">Email</label>
+              <input id="email" name="email" type="email" value={form.email} onChange={update} autoComplete="email" className="input" placeholder="you@example.com" {...invalid("email")} />
+              {fieldError("email")}
+            </div>
+            {mode !== "forgot" && (
+              <div>
+                <div className="mb-1.5 flex justify-between">
+                  <label htmlFor="password" className="text-sm font-medium">Password</label>
+                  {!isSignup && (
+                    <button type="button" onClick={() => switchMode("forgot")} className="text-sm text-muted hover:text-ink">
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  value={form.password}
+                  onChange={update}
+                  autoComplete={isSignup ? "new-password" : "current-password"}
+                  placeholder={isSignup ? "At least 8 characters" : "••••••••"}
+                  {...invalid("password")}
+                />
+                {fieldError("password")}
+              </div>
+            )}
+
+            {isSignup && (
+              <div>
+                <label className="flex items-start gap-3 pt-1 text-sm text-muted">
+                  <input id="terms" name="terms" type="checkbox" checked={form.terms} onChange={update} className="mt-0.5 h-4 w-4 rounded border-line text-ink focus:ring-ink" />
+                  <span>
+                    I agree to the <Link href="/" className="underline">terms of use</Link> and <Link href="/" className="underline">privacy policy</Link>.
+                  </span>
+                </label>
+                {fieldError("terms")}
+              </div>
+            )}
+
+            <button disabled={busy} className="btn-dark h-12 w-full">{busy ? COPY[mode].busy : COPY[mode].button}</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
